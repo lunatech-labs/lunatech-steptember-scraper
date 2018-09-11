@@ -18,7 +18,7 @@ process.on("unhandledRejection", (reason, p) => {
     process.exit(1);
 });
 
-const waitOptions = {waitUntil: 'networkidle2', timeout: 60000};
+const waitOptions = {waitUntil: 'networkidle2', timeout: 120000};
 
 const login = async (browser) => {
     console.log("logging in");
@@ -173,7 +173,7 @@ const insertRecordsIntoMySQL = async (query, records = []) =>
 const sleep = (ms) =>
     new Promise(resolve => setTimeout(resolve, ms));
 
-const fiveMinutes = 5 * 60 * 1000;
+const fifteenMinutes = 15 * 60 * 1000;
 
 connect().then((async (con) => {
     const query = queryMySQL(con);
@@ -201,15 +201,16 @@ connect().then((async (con) => {
         let membersScores = [];
         participants.forEach(async (participant) => {
             membersScores.push(await createRecord(browser, participant.id));
+            await sleep(50);
         });
 
         console.log("saving records...");
 
         await insertRecordsIntoMySQL(query, membersScores);
 
-        console.log("querying done, repeating in 5 minutes...");
+        console.log("querying done, repeating in 15 minutes...");
 
-        await sleep(fiveMinutes);
+        await sleep(fifteenMinutes);
     }
 
     await browser.close();
