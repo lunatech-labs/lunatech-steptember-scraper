@@ -197,7 +197,12 @@ connect().then((async (con) => {
     while (true) {
         console.log("querying records...");
 
-        const membersScores = await Promise.all(participants.map(async participant => await createRecord(browser, participant.id)));
+        // synchronously query records in order to not max out memory limits
+        let membersScores = [];
+        participants.forEach(async (participant) => {
+            membersScores.push(await createRecord(browser, participant.id));
+        });
+
         console.log("saving records...");
 
         await insertRecordsIntoMySQL(query, membersScores);
