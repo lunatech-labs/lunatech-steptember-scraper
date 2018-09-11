@@ -6,6 +6,7 @@ COPY index.js /app
 COPY endpoint.js /app
 COPY package.json /app
 COPY wait_for_mysql.sh /app
+COPY run.sh /app
 
 USER root
 
@@ -15,4 +16,4 @@ RUN apt-get update -y \
 
 USER pptruser
 
-CMD ./wait_for_mysql.sh && (npm run-script server & npm run-script scraper)
+CMD ./run.sh

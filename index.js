@@ -15,17 +15,30 @@ process.on("unhandledRejection", (reason, p) => {
 
 const waitOptions = {waitUntil: 'networkidle2', timeout: 120000};
 
+const denyMediaRequests = (request) => {
+    if (['image', 'stylesheet', 'font', 'script'].indexOf(request.resourceType()) !== -1) {
+        request.abort();
+    } else {
+        request.continue();
+    }
+};
+
 const login = async (browser) => {
     console.log("logging in");
 
     const page = await browser.newPage();
     await page.goto('https://event.steptember.nl/login', waitOptions);
+
+    await sleep(150);
+    const pageWait = page.waitForNavigation(waitOptions);
     await page.evaluate((username, password) => {
         document.querySelector('.signinForm input[name="userName"]').value = username;
         document.querySelector('.signinForm input[name="password"]').value = password;
+        document.querySelector(".signinForm form").submit.click();
     }, process.env.STEPTEMBER_USERNAME, process.env.STEPTEMBER_PASSWORD);
-    await page.$eval('.signinForm button[type="submit"]', el => el.click());
-    await page.waitForNavigation(waitOptions);
+    await pageWait;
+
+    await page.goto('about:blank'); // free up memory
     await page.close();
 
     console.log("logged in");
@@ -35,6 +48,8 @@ const createRecord = async (browser, id) => {
     console.log(`querying ${id}`);
 
     const page = await browser.newPage();
+    await page.setRequestInterception(true);
+    await page.on('request', denyMediaRequests);
     await page.goto(`https://event.steptember.nl/donate/onbehalfof?id=${id}`, waitOptions);
 
     await page.evaluate(() => {
@@ -54,6 +69,7 @@ const createRecord = async (browser, id) => {
         participantId: id
     }), id);
 
+    await page.goto('about:blank'); // free up memory
     await page.close();
     return response;
 };
@@ -62,6 +78,8 @@ const queryTeams = async (browser) => {
     console.log("querying teams");
 
     const page = await browser.newPage();
+    await page.setRequestInterception(true);
+    await page.on('request', denyMediaRequests);
     await page.goto('https://event.steptember.nl/team/leaderboardsteps?category=org', waitOptions);
 
     const response = await page.evaluate(() =>
@@ -75,6 +93,7 @@ const queryTeams = async (browser) => {
             })
         ));
 
+    await page.goto('about:blank'); // free up memory
     await page.close();
     return response;
 };
@@ -194,10 +213,11 @@ connect().then((async (con) => {
 
         // synchronously query records in order to not max out memory limits
         let membersScores = [];
-        participants.forEach(async (participant) => {
-            membersScores.push(await createRecord(browser, participant.id));
+        for (let i = 0; i < participants.length; i++) {
+            const score = await createRecord(browser, participants[i].id);
+            membersScores.push(score);
             await sleep(50);
-        });
+        }
 
         console.log("saving records...");
 
