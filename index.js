@@ -1,20 +1,15 @@
 const puppeteer = require('puppeteer');
 const mysql = require('mysql');
-const express = require('express');
-
-let alive = true;
 
 process.setMaxListeners(Infinity);
 
 process.on('uncaughtException', (err) => {
     console.log(err);
-    alive = false;
     process.exit(1);
 });
 
 process.on("unhandledRejection", (reason, p) => {
     console.error("Unhandled Rejection at: Promise", p, "reason:", reason);
-    alive = false;
     process.exit(1);
 });
 
@@ -215,22 +210,3 @@ connect().then((async (con) => {
 
     await browser.close();
 }));
-
-// Constants
-const PORT = 8080;
-const HOST = '0.0.0.0';
-
-// App
-const app = express();
-app.get('/', (req, res) => {
-    if (alive) {
-        res.status(200);
-        res.send('OK');
-    } else {
-        res.status(500);
-        re.send('BAD')
-    }
-});
-
-app.listen(PORT, HOST);
-console.log(`Running on http://${HOST}:${PORT}`);

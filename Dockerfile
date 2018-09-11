@@ -14,4 +14,4 @@ RUN apt-get update -y \
 
 USER pptruser
 
-CMD ./wait_for_mysql.sh && npm start
+CMD ./wait_for_mysql.sh && (npm server & npm start)

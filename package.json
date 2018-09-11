@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "server": "node endpoint.js"
   },
   "author": "",
   "license": "GPL-3.0-or-later",
