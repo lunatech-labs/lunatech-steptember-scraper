@@ -1,15 +1,20 @@
 const puppeteer = require('puppeteer');
 const mysql = require('mysql');
+const express = require('express');
+
+let alive = true;
 
 process.setMaxListeners(Infinity);
 
 process.on('uncaughtException', (err) => {
     console.log(err);
+    alive = false;
     process.exit(1);
 });
 
 process.on("unhandledRejection", (reason, p) => {
     console.error("Unhandled Rejection at: Promise", p, "reason:", reason);
+    alive = false;
     process.exit(1);
 });
 
@@ -85,10 +90,11 @@ const getParticipantsFromTeams = (teams) =>
 const connect = () =>
     new Promise((resolve, reject) => {
         const con = mysql.createConnection({
-            host: process.env.MYSQL_DOMAIN,
-            user: process.env.MYSQL_USERNAME,
-            password: process.env.MYSQL_PASSWORD,
-            database: process.env.MYSQL_DATABASE
+            host: process.env.MYSQL_ADDON_HOST,
+            user: process.env.MYSQL_ADDON_USER,
+            password: process.env.MYSQL_ADDON_PASSWORD,
+            database: process.env.MYSQL_ADDON_DB,
+            port: process.env.MYSQL_ADDON_PORT
         });
         con.connect((err) => {
             if (err) reject(err);
@@ -161,8 +167,8 @@ const insertRecordIntoMySQL = (query, record) =>
         record.distance
     ]);
 
-const insertRecordsIntoMySQL = (query, records = []) =>
-    records.map((record) => insertRecordIntoMySQL(query, record));
+const insertRecordsIntoMySQL = async (query, records = []) =>
+    await Promise.all(records.map(async (record) => await insertRecordIntoMySQL(query, record)));
 
 const sleep = (ms) =>
     new Promise(resolve => setTimeout(resolve, ms));
@@ -191,9 +197,9 @@ connect().then((async (con) => {
     while (true) {
         console.log("querying records...");
 
-        const membersScores = await Promise.all(participants
-            .map(async participant => await createRecord(browser, participant.id))
-        );
+        const membersScores = await Promise.all(participants.map(async participant => await createRecord(browser, participant.id)));
+        console.log("saving records...");
+
         await insertRecordsIntoMySQL(query, membersScores);
 
         console.log("querying done, repeating in 5 minutes...");
@@ -203,3 +209,22 @@ connect().then((async (con) => {
 
     await browser.close();
 }));
+
+// Constants
+const PORT = 8080;
+const HOST = '0.0.0.0';
+
+// App
+const app = express();
+app.get('/', (req, res) => {
+    if (alive) {
+        res.status(200);
+        res.send('OK');
+    } else {
+        res.status(500);
+        re.send('BAD')
+    }
+});
+
+app.listen(PORT, HOST);
+console.log(`Running on http://${HOST}:${PORT}`);
