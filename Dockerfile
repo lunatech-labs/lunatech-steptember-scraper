@@ -3,6 +3,7 @@ FROM alekzonder/puppeteer:latest
 WORKDIR /app
 
 COPY index.js /app
+COPY endpoint.js /app
 COPY package.json /app
 COPY wait_for_mysql.sh /app
 
@@ -14,4 +15,4 @@ RUN apt-get update -y \
 
 USER pptruser
 
-CMD ./wait_for_mysql.sh && (npm server & npm start)
+CMD ./wait_for_mysql.sh && (npm run-script server & npm run-script scraper)
